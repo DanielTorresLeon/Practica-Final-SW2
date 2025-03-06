@@ -1,0 +1,24 @@
+graph TD;
+    subgraph Frontend
+        subgraph Usuario
+            A[Vista Cliente] --> B[Interfaz Cliente]
+        end
+        subgraph Autonomo
+            C[Vista Autónomo] --> D[Interfaz Autónomo]
+        end
+    end
+    
+    subgraph Backend
+        B & D -->|Solicitudes| E[API Backend]
+        E -->|Gestiona datos| F[Base de Datos]
+    end
+    
+    subgraph Base de Datos
+        F -->|Almacena| G[Usuarios]
+        F -->|Almacena| H[Información de Negocio]
+        F -->|Almacena| I[Citas]
+    end
+    
+    subgraph Pasarela de Pago
+        E -->|Procesa pagos| J[Servicio de Pago]
+    end
