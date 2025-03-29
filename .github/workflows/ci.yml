@@ -32,7 +32,6 @@ jobs:
         run: |
           cd AutonoMeet_backend
           pip install --upgrade pip
-          # Si puedes usar psycopg2-binary, reemplázalo en requirements.txt o usa:
           pip install psycopg2-binary==2.9.10 -r requirements.txt
 
       - name: Run Tests
