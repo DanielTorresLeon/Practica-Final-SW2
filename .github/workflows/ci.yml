@@ -9,7 +9,7 @@ jobs:
   backend:
     name: Backend Tests
     runs-on: ubuntu-latest
-    environment: production
+    environment: Testing
     container:
       image: python:3.10-slim
       env:
