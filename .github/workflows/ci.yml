@@ -5,33 +5,39 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
 jobs:
   backend:
     name: Backend Tests
     runs-on: ubuntu-latest
+    environment: Testing
+    container:
+      image: python:3.10-slim
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        PYTHONPATH: /github/workspace/AutonoMeet_backend
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Install system dependencies
+        run: |
+          apt-get update && apt-get install -y \
+            libpq-dev \
+            python3-dev \
+            gcc
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           cd AutonoMeet_backend
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
+          pip install --upgrade pip
+          pip install psycopg2-binary==2.9.10 -r requirements.txt
 
       - name: Run Tests
         run: |
           cd AutonoMeet_backend
-          source venv/bin/activate
-          PYTHONPATH=$(pwd) pytest --cov=app tests/
+          pytest --cov=app tests/
 
   frontend:
     name: Frontend Tests

@@ -1,5 +1,8 @@
 import pytest
-from app import create_app  
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app import create_app
 
 @pytest.fixture
 def client():
@@ -11,4 +14,3 @@ def client():
 def test_home_route(client):
     response = client.get('/')
     assert response.status_code == 200
-
