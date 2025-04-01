@@ -18,4 +18,16 @@ class AuthService:
         db.session.commit()
 
         return new_user, None, 201  
+    @staticmethod
+    def login_user(email, password):
+        normalized_email = email.lower()
+        user = User.query.filter_by(email=normalized_email).first()
+
+        if not user:
+            return None, "User not found", 404  
+
+        if not check_password_hash(user.password_hash, password):
+            return None, "Invalid password", 401  
+
+        return user, None, 200
     
