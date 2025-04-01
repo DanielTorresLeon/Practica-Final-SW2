@@ -2,6 +2,8 @@ from flask import Flask
 from flask_restx import Api
 from flask_sqlalchemy import SQLAlchemy
 import os
+from app.config import Config
+from flask_jwt_extended import JWTManager
 
 
 db = SQLAlchemy()
@@ -12,13 +14,12 @@ def create_app():
 
     API_PREFIX = '/api/v0'
     
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': 10,
-        'pool_recycle': 300,
-        'pool_pre_ping': True
-    }
+    app.config.from_object(Config)
+
+    app.config['JWT_SECRET_KEY'] = os.getenv('SECRET_KEY') 
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600 
+    jwt = JWTManager(app)
+
     
     db.init_app(app)
     
