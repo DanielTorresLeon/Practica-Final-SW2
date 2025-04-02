@@ -1,6 +1,4 @@
 import jwt
-from jwt.exceptions import DecodeError, InvalidTokenError
-jwt.DecodeError = DecodeError  
 
 from flask import Flask, jsonify
 from flask_restx import Api
