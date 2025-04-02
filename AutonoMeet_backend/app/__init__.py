@@ -1,10 +1,15 @@
-from flask import Flask
+import jwt
+from jwt.exceptions import DecodeError, InvalidTokenError
+jwt.DecodeError = DecodeError  
+
+from flask import Flask, jsonify
 from flask_restx import Api
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
+from flask_jwt_extended.exceptions import NoAuthorizationError, JWTExtendedException
+from flask_cors import CORS
 from app.config import Config
 from dotenv import load_dotenv
-from flask_cors import CORS
 
 load_dotenv()
 
@@ -40,6 +45,22 @@ def create_app():
     
     api = Api(app, title="AutonoMeetApi", version="1.0", 
               description="Documentation of AutonoMeet API with Flask-RESTx")
+
+
+
+
+    @jwt.unauthorized_loader
+    def unauthorized_callback(callback):
+        return jsonify({"message": "Missing Authorization Header"}), 401
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(callback):
+        print(f"Invalid token callback: {callback}")
+        return jsonify({"message": "Invalid token"}), 422
+    
+    @app.errorhandler(NoAuthorizationError)
+    def handle_no_authorization_error(e):
+        return jsonify({"message": "Missing Authorization Header"}), 401
 
     from app.routes import auth_routes
     api.add_namespace(auth_routes.api, path=f"{API_PREFIX}/auth") 
