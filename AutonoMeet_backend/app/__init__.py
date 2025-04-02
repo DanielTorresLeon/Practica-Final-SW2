@@ -4,29 +4,34 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from app.config import Config
 from dotenv import load_dotenv
+from flask_cors import CORS
 
-# Load environment variables early
 load_dotenv()
 
 db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
+
+    CORS(
+        app,
+        origins="http://localhost:5173",  
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  
+        allow_headers=["Content-Type", "Authorization"],  
+        supports_credentials=True  
+    )
+
     API_PREFIX = '/api/v0'
     
-    # Load configuration
     app.config.from_object(Config)
     
-    # Verify configuration was loaded
     if not app.config.get('SQLALCHEMY_DATABASE_URI'):
         raise RuntimeError("Database URI not configured")
 
-    # JWT Configuration
     app.config['JWT_SECRET_KEY'] = app.config['SECRET_KEY']
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600 
     jwt = JWTManager(app)
     
-    # Initialize database
     db.init_app(app)
     
     with app.app_context():
