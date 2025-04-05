@@ -39,6 +39,11 @@ def create_app():
     
     with app.app_context():
         from app.models.user import User
+        from app.models.appointment import Appointment
+        from app.models.category import Category
+        from app.models.freelancer_profile import FreelancerProfile
+        from app.models.review import Review 
+        from app.models.service import Service
         db.create_all()
     
     api = Api(app, title="AutonoMeetApi", version="1.0", 
