@@ -10,7 +10,8 @@ api = Namespace('auth', description='Authentication Operations')
 register_model = api.model('Register', {
     'email': fields.String(required=True, description='User email'),
     'password': fields.String(required=True, description='User Password')
-})
+    
+    })
 
 login_model = api.model('Login', {
     'email': fields.String(required=True, description='User email'),
@@ -24,8 +25,9 @@ class Register(Resource):
         data = request.get_json()
         email = data.get('email')
         password = data.get('password')
+        is_freelancer = data.get('is_freelancer')
 
-        user, error, status_code = AuthService.register_user(email, password)
+        user, error, status_code = AuthService.register_user(email, password, is_freelancer)
         if error:
             return {"message": error}, status_code
 
@@ -34,6 +36,7 @@ class Register(Resource):
         return {
             "message": "User registered sucesfully",
             "user_id": user.id,
+            "is_freelancer": user.is_freelancer,
             "email": user.email,
             "access_token": access_token
         }, 201

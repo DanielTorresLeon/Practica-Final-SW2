@@ -8,14 +8,14 @@ import os
 
 class AuthService:
     @staticmethod
-    def register_user(email, password):
+    def register_user(email, password, is_freelancer):
         normalized_email = email.lower()
         if User.query.filter_by(email=normalized_email).first():
             return None, "User already exists", 409  
 
         password_hash = generate_password_hash(password)
 
-        new_user = User(email=normalized_email, password_hash=password_hash)
+        new_user = User(email=normalized_email, password_hash=password_hash, is_freelancer = is_freelancer)
         db.session.add(new_user)
         db.session.commit()
 
