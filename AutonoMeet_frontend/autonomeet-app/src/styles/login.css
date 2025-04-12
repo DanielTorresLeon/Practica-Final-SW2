@@ -1,0 +1,226 @@
+/* styles/login.css */
+
+/* Base container styles */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f9fafb 0%, #eef2ff 100%);
+    padding: 1rem;
+  }
+  
+  /* Form container */
+  .form {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 
+                0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  
+  .form h2 {
+    color: #111827;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  /* Input styles */
+  .input-group {
+    margin-bottom: 1.25rem;
+    text-align: left;
+  }
+  
+  .input-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+  
+  .input-field {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+  }
+  
+  .input-field:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  /* Submit button */
+  .submit-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    background-color: #2563eb;
+    color: white;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 1rem 0;
+  }
+  
+  .submit-btn:hover {
+    background-color: #1d4ed8;
+  }
+  
+  /* Text styles */
+  .p {
+    color: #4b5563;
+    margin: 1.5rem 0;
+    font-size: 0.95rem;
+  }
+  
+  .p.line {
+    position: relative;
+  }
+  
+  .p.line:before,
+  .p.line:after {
+    content: "";
+    position: absolute;
+    height: 1px;
+    background-color: #e5e7eb;
+    top: 50%;
+    width: 30%;
+  }
+  
+  .p.line:before {
+    left: 0;
+  }
+  
+  .p.line:after {
+    right: 0;
+  }
+  
+  /* Flex row for buttons */
+  .flex-row {
+    margin-bottom: 1rem;
+  }
+  
+  /* Button container */
+  .w-100 {
+    width: 100%;
+  }
+  
+  .p-1 {
+    padding: 0.25rem;
+  }
+  
+  /* Error message */
+  .error-message {
+    color: #ef4444;
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background-color: #fef2f2;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    text-align: center;
+    border: 1px solid #fee2e2;
+  }
+  
+  /* Social button adjustments */
+  .react-social-login-buttons__button {
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .react-social-login-buttons__button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Google button container adjustments */
+  .google-login-container {
+    display: flex;
+    justify-content: center;
+  }
+  
+  /* Auth redirect link */
+  .auth-redirect {
+    margin-top: 1.5rem;
+    color: #4b5563;
+    font-size: 0.875rem;
+  }
+  
+  .redirect-link {
+    color: #2563eb;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  
+  .redirect-link:hover {
+    text-decoration: underline;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 480px) {
+    .form {
+      padding: 1.5rem;
+    }
+    
+    .p.line:before,
+    .p.line:after {
+      width: 25%;
+    }
+  }
+
+  /* Add these styles to your login.css file */
+
+.radio-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+  
+  .radio-option input[type="radio"] {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .radio-option input[type="radio"]:checked {
+    border-color: #2563eb;
+  }
+  
+  .radio-option input[type="radio"]:checked::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background-color: #2563eb;
+    border-radius: 50%;
+  }
+  
+  .radio-option span {
+    font-size: 0.875rem;
+    color: #374151;
+  }
