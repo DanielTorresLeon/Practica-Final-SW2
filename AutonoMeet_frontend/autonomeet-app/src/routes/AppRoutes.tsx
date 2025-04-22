@@ -5,14 +5,18 @@ import NotFound from '../pages/NotFound';
 import React from 'react';
 import UserMain from '../pages/Client/clientMainPage'
 import FreelancerMain from '../pages/Freelancer/freelancerMainPage'
+import ProtectedRoute from '../components/ProtectedRoute';
 
 
 const AppRoutes = () => {
   return (
     <Router>
       <Routes>
+      <Route element={<ProtectedRoute />}>
         <Route path="/user" element={<UserMain />} />
         <Route path="/freelancer" element={<FreelancerMain />} />
+      </Route>
+      
         <Route path="/" element={<Login />} />        
         <Route path="/signup" element={<Registration/>} />
         <Route path="*" element={<NotFound />} />

@@ -107,7 +107,9 @@
   
   /* Flex row for buttons */
   .flex-row {
+    display: flex;
     margin-bottom: 1rem;
+    justify-content: center;
   }
   
   /* Button container */
@@ -224,3 +226,41 @@
     font-size: 0.875rem;
     color: #374151;
   }
+
+  /* User type selection */
+.user-type-selection {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.user-type-selection .input-label {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.user-type-selection .radio-group {
+  justify-content: center;
+}
+
+.user-type-selection .radio-option {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.user-type-selection .radio-option:hover {
+  background-color: #e5e7eb;
+}
+
+.user-type-selection .radio-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+}
+
+.user-type-selection .radio-option span {
+  font-weight: 500;
+}

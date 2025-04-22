@@ -37,12 +37,10 @@ const FreelancerHome = () => {
 
   const handleAcceptRequest = (id) => {
     console.log('Accepted request:', id);
-    // Add your logic here
   };
 
   const handleDeclineRequest = (id) => {
     console.log('Declined request:', id);
-    // Add your logic here
   };
 
   return (

@@ -4,26 +4,36 @@ import { jwtDecode } from 'jwt-decode';
 interface User {
     id: string;
     email: string;
-
+    is_freelancer: boolean;
 }
 
 const AuthContext = createContext<{
     user: User | null;
     login: (token: string) => void;
     logout: () => void;
+    isFreeLancer: () =>  boolean;
 }>({
     user: null,
     login: () => {},
     logout: () => {},
+    isFreeLancer: () => false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
 
     const login = (token: string) => {
+        
         localStorage.setItem('token', token);
         const decoded = jwtDecode<User>(token);
-        setUser(decoded);
+        setUser({
+            id: decoded.user_id,
+            email: decoded.email,
+            is_freelancer: decoded.is_freelancer
+          });
+
+        console.log(decoded)
+        return decoded
     };
 
     const logout = () => {
@@ -31,16 +41,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
     };
 
+
+    const isFreeLancer = () => {
+        return user?.is_freelancer ?? false; 
+    };
+
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
+          try {
             const decoded = jwtDecode<User>(token);
             setUser(decoded);
+          } catch (err) {
+            console.error('Invalid token:', err);
+            localStorage.removeItem('token');
+          }
         }
-    }, []);
+      }, []);
 
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{ user, login, logout, isFreeLancer }}>
             {children}
         </AuthContext.Provider>
     );

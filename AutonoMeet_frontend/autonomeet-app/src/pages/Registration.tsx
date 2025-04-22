@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/authService';
-import React, { useState , useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
+import { GithubLoginButton } from 'react-social-login-buttons';
 import '../styles/login.css';
 
 const Registration = () => {
@@ -13,7 +15,7 @@ const Registration = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    is_freelancer: false,
+    is_freelancer: null as boolean | null, 
   });
   const { login } = useAuth();
 
@@ -95,22 +97,28 @@ const Registration = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleUserTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      is_freelancer: e.target.value === 'freelancer'
+      is_freelancer: e.target.value === 'freelancer',
     }));
+    setError(''); 
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (formData.is_freelancer === null) {
+      setError('Please select whether you are a Freelancer or Client.');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -126,18 +134,11 @@ const Registration = () => {
       const response = await AuthService.register({
         email: formData.email,
         password: formData.password,
-        is_freelancer: formData.is_freelancer
+        is_freelancer: formData.is_freelancer,
       });
 
       login(response.access_token);
-      
-      // Redirect based on user role
-      if (formData.is_freelancer) {
-        navigate('/freelancer');
-      } else {
-        navigate('/user');
-      }
-      
+      navigate(formData.is_freelancer ? '/freelancer' : '/user');
     } catch (err) {
       setError('Registration failed. Please try again.');
       console.error('Registration error:', err);
@@ -148,10 +149,36 @@ const Registration = () => {
     <div className="login-container">
       <div className="form">
         <h2>Create Account</h2>
-        
-        <form onSubmit={handleSubmit}>
-          
 
+        {/* User Type Selection */}
+        <div className="input-group user-type-selection">
+          <label className="input-label">I am a:</label>
+          <div className="radio-group">
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="userType"
+                value="freelancer"
+                checked={formData.is_freelancer === true}
+                onChange={handleUserTypeChange}
+              />
+              <span>Freelancer</span>
+            </label>
+            <label className="radio-option">
+              <input
+                type="radio"
+                name="userType"
+                value="client"
+                checked={formData.is_freelancer === false}
+                onChange={handleUserTypeChange}
+              />
+              <span>Client</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Registration Form */}
+        <form onSubmit={handleSubmit}>
           <div className="input-group">
             <label htmlFor="email" className="input-label">Email</label>
             <input
@@ -164,7 +191,7 @@ const Registration = () => {
               required
             />
           </div>
-          
+
           <div className="input-group">
             <label htmlFor="password" className="input-label">Password</label>
             <input
@@ -193,36 +220,29 @@ const Registration = () => {
             />
           </div>
 
-          <div className="input-group">
-            <label className="input-label">I am a:</label>
-            <div className="radio-group">
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="userType"
-                  value="freelancer"
-                  checked={formData.is_freelancer}
-                  onChange={handleUserTypeChange}
-                />
-                <span>Freelancer</span>
-              </label>
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="userType"
-                  value="client"
-                  checked={!formData.is_freelancer}
-                  onChange={handleUserTypeChange}
-                />
-                <span>Client</span>
-              </label>
-            </div>
-          </div>
-          
           <button type="submit" className="submit-btn">
             Sign Up
           </button>
         </form>
+
+        <p className="p line">Or sign up with</p>
+
+        {/* Social Login Buttons */}
+        <div className="flex-row">
+          <div className="w-100 p-1 google-login-container" style={{ height: '40px', width: '100%' }}>
+            <GoogleLogin
+              onSuccess={handleGoogleLoginSuccess}
+              onError={handleGoogleLoginError}
+            />
+          </div>
+        </div>
+
+        <div className="flex-row">
+          <GithubLoginButton
+            onClick={handleGithubLogin}
+            style={{ height: '40px', width: '215px' }}
+          />
+        </div>
 
         {error && <div className="error-message">{error}</div>}
 
