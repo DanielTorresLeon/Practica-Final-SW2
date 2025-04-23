@@ -6,6 +6,16 @@ import { GoogleLogin } from '@react-oauth/google';
 import { GithubLoginButton } from 'react-social-login-buttons';
 import '../styles/login.css';
 import { Link } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
+
+interface User {
+  id: string;
+  email: string;
+  is_freelancer?: boolean;
+}
+
+
+
 
 const Login = () => {
   const navigate = useNavigate();
@@ -40,17 +50,19 @@ const Login = () => {
   };
 
   const handleGitHubLogin = () => {
-    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(window.location.origin + '/login')}&scope=user:email`;
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent('http://localhost:5173/')}&scope=user:email`;
     window.location.href = githubAuthUrl;
-  };
+};
 
-  const handleGitHubCallback = async (code: string) => {
+  const handleGitHubCallback = async (code) => {
     try {
-      const response = await AuthService.githubAuth({ code });
+      const response = await AuthService.githubAuth({
+              code: code              
+            });
       console.log('GitHub authentication successful:', response);
 
-      login(response.access_token);
-      navigate('/products');
+      const userData = login(response.access_token);
+      navigate(userData.is_freelancer ? '/freelancer' : '/user');
     } catch (err) {
       setError('Error during GitHub authentication. Please try again.');
     }

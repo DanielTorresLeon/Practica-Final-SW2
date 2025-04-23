@@ -67,6 +67,8 @@ class AuthService:
     @staticmethod
     def github_auth(code):
         try:
+            print(f"Starting GitHub auth with code: {code}, is_freelancer: {is_freelancer}")
+            
             response = requests.post(
                 'https://github.com/login/oauth/access_token',
                 headers={'Accept': 'application/json'},
@@ -76,14 +78,17 @@ class AuthService:
                     'code': code
                 }
             )
-
+            
+            print(f"Response status code: {response.status_code}")
             response_data = response.json()
             
 
             access_token = response_data.get('access_token')
             if not access_token:
+                print("No access token received")
                 return None, "Invalid GitHub code", 401
 
+            print(f"Got access token: {access_token}")
             user_info = requests.get(
                 'https://api.github.com/user',
                 headers={'Authorization': f'token {access_token}'}
@@ -92,21 +97,28 @@ class AuthService:
 
             github_id = user_info.get('id')
             email = user_info.get('email')
+            print(f"Extracted github_id: {github_id}, email: {email}")
 
             if not github_id:
+                print("No GitHub ID found in user_info")
                 return None, "No GitHub ID provided", 400
 
             user = User.query.filter_by(github_id=github_id).first()
+            print(f"Queried user: {user}")
 
             if not user:
                 user = User(github_id=github_id, email=email, password_hash=None)
                 db.session.add(user)
                 db.session.commit()
+                print(f"New user created with id: {user.id}")
             else:
                 if email:
                     user.email = email
                     db.session.commit()
+                else:
+                    print("User exists, no email update needed")
 
+            print(f"Returning user: {user}")
             return user, None, 200
 
         except Exception as e:

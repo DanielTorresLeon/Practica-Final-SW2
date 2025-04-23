@@ -17,6 +17,82 @@ const Registration = () => {
   });
   const { login } = useAuth();
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+  
+    console.log("UseEFFECT");
+    console.log(state);
+  
+    let isFreelancer = null;
+    if (state !== null) {
+      isFreelancer = state === 'freelancer';
+      setFormData((prev) => ({
+        ...prev,
+        is_freelancer: isFreelancer,
+      }));
+    }
+  
+    if (code) {
+      handleGitHubCallback(code, isFreelancer);
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log('Estado actual de formData:', formData);
+  }, [formData]);
+
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    if (formData.is_freelancer === null) {
+      setError('Please select whether you are a Freelancer or Client.');
+      return;
+    }
+    try {
+      const response = await AuthService.googleAuth({
+        token: credentialResponse.credential,
+        is_freelancer: formData.is_freelancer,
+      });
+      console.log('Google authentication successful:', response);
+
+      const userData = login(response.access_token);
+
+      navigate(userData.is_freelancer ? '/freelancer' : '/user');
+    } catch (err) {
+      setError('Error during Google authentication. Please try again.');
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    setError('Google authentication failed. Please try again.');
+  };
+
+  const handleGithubLogin = async () => {
+    const userType = formData.is_freelancer ? 'freelancer' : 'client';
+    console.log("GITHUB LOGIN")
+    console.log(userType)
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent('http://localhost:5173/signup')}&scope=user:email&state=${userType}`;
+    window.location.href = githubAuthUrl;
+  };
+
+  const handleGitHubCallback = async (code: string, isFreelancer: boolean | null = formData.is_freelancer) => {
+    console.log(formData.is_freelancer)
+    try {
+      const response = await AuthService.githubAuth({
+        code: code,
+        is_freelancer: isFreelancer,
+        
+      });
+      
+      console.log('GitHub authentication successful:', response);
+
+      const userData = login(response.access_token);
+      navigate(userData.is_freelancer ? '/freelancer' : '/user');
+    } catch (err) {
+      setError('Error during GitHub authentication. Please try again.');
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
