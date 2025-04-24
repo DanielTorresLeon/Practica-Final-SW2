@@ -32,7 +32,7 @@ const FreelancerHome = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const handleAcceptRequest = (id) => {
