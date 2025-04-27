@@ -8,6 +8,7 @@ def generate_access_token(user):
     payload = {
         "sub": str(user.id), 
         "email": user.email if user.email else None,  
+        "is_freelancer": user.is_freelancer, 
         "exp": expiration
     }
 

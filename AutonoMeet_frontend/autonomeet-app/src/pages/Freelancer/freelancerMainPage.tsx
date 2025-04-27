@@ -32,17 +32,15 @@ const FreelancerHome = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const handleAcceptRequest = (id) => {
     console.log('Accepted request:', id);
-    // Add your logic here
   };
 
   const handleDeclineRequest = (id) => {
     console.log('Declined request:', id);
-    // Add your logic here
   };
 
   return (

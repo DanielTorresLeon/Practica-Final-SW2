@@ -15,11 +15,12 @@ class AuthService:
 
         password_hash = generate_password_hash(password)
 
-        new_user = User(email=normalized_email, password_hash=password_hash, is_freelancer = is_freelancer)
+        new_user = User(email=normalized_email, password_hash=password_hash, is_freelancer=is_freelancer)
         db.session.add(new_user)
         db.session.commit()
 
         return new_user, None, 201  
+
     @staticmethod
     def login_user(email, password):
         normalized_email = email.lower()
@@ -34,7 +35,7 @@ class AuthService:
         return user, None, 200
     
     @staticmethod
-    def google_auth(token):
+    def google_auth(token, is_freelancer):
         try:
             idinfo = id_token.verify_oauth2_token(
                 token, 
@@ -44,29 +45,31 @@ class AuthService:
             )
 
             if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
-                return None, "Wrong issuer", 401  # Explicit return
+                return None, "Wrong issuer", 401
 
             email = idinfo['email']
             normalized_email = email.lower()
             user = User.query.filter_by(email=normalized_email).first()
 
             if not user:
-                user = User(email=normalized_email, password_hash=None)
+                user = User(email=normalized_email, password_hash=None, is_freelancer=is_freelancer)
                 db.session.add(user)
                 db.session.commit()
 
-            return user, None, 200  # Success case
+            return user, None, 200
 
         except ValueError as e:
             print(f"Google auth error: {str(e)}")
-            return None, f"Invalid Google token: {str(e)}", 401  # Explicit error return
+            return None, f"Invalid Google token: {str(e)}", 401
         except Exception as e:
             print(f"Unexpected error in google_auth: {str(e)}")
             return None, "Internal server error during Google auth", 500
     
     @staticmethod
-    def github_auth(code):
+    def github_auth(code, is_freelancer):
         try:
+            print(f"Starting GitHub auth with code: {code}, is_freelancer: {is_freelancer}")
+            
             response = requests.post(
                 'https://github.com/login/oauth/access_token',
                 headers={'Accept': 'application/json'},
@@ -76,38 +79,46 @@ class AuthService:
                     'code': code
                 }
             )
-
-            response_data = response.json()
             
-
+            print(f"Response status code: {response.status_code}")
+            response_data = response.json()
             access_token = response_data.get('access_token')
             if not access_token:
+                print("No access token received")
                 return None, "Invalid GitHub code", 401
 
+            print(f"Got access token: {access_token}")
             user_info = requests.get(
                 'https://api.github.com/user',
                 headers={'Authorization': f'token {access_token}'}
             ).json()
 
-
             github_id = user_info.get('id')
             email = user_info.get('email')
+            print(f"Extracted github_id: {github_id}, email: {email}")
 
             if not github_id:
+                print("No GitHub ID found in user_info")
                 return None, "No GitHub ID provided", 400
 
             user = User.query.filter_by(github_id=github_id).first()
+            print(f"Queried user: {user}")
 
             if not user:
-                user = User(github_id=github_id, email=email, password_hash=None)
+                user = User(github_id=github_id, email=email, password_hash=None, is_freelancer=is_freelancer)
                 db.session.add(user)
                 db.session.commit()
+                print(f"New user created with id: {user.id}")
             else:
-                if email:
+                if email and not user.email:
                     user.email = email
                     db.session.commit()
+                else:
+                    print("User exists, no email update needed")
 
+            print(f"Returning user: {user}")
             return user, None, 200
 
         except Exception as e:
+            print(f"GitHub auth error: {str(e)}")
             return None, "Error during GitHub authentication", 500

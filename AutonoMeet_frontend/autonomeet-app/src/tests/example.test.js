@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-// Función simple para probar
 const sum = (a, b) => a + b;
 
 describe('sum function', () => {
