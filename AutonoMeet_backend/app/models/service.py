@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from app import db
+from app.models.category import Category  
 
 class Service(db.Model):
     __tablename__ = 'services'

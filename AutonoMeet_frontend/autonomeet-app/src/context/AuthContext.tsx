@@ -7,33 +7,34 @@ interface User {
     is_freelancer: boolean;
 }
 
-const AuthContext = createContext<{
+interface AuthContextType {
     user: User | null;
     login: (token: string) => void;
     logout: () => void;
-    isFreeLancer: () =>  boolean;
-}>({
+    isFreeLancer: () => boolean;
+    getToken: () => Promise<string | null>;
+}
+
+const AuthContext = createContext<AuthContextType>({
     user: null,
     login: () => {},
     logout: () => {},
     isFreeLancer: () => false,
+    getToken: async () => null,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
 
     const login = (token: string) => {
-        
         localStorage.setItem('token', token);
         const decoded = jwtDecode<User>(token);
         setUser({
-            id: decoded.user_id,
+            id: decoded.id,
             email: decoded.email,
             is_freelancer: decoded.is_freelancer
-          });
-
-        console.log(decoded)
-        return decoded
+        });
+        return decoded;
     };
 
     const logout = () => {
@@ -41,26 +42,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
     };
 
-
     const isFreeLancer = () => {
         return user?.is_freelancer ?? false; 
+    };
+
+    const getToken = async () => {
+        return localStorage.getItem('token');
     };
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-          try {
-            const decoded = jwtDecode<User>(token);
-            setUser(decoded);
-          } catch (err) {
-            console.error('Invalid token:', err);
-            localStorage.removeItem('token');
-          }
+            try {
+                const decoded = jwtDecode<User>(token);
+                setUser(decoded);
+            } catch (err) {
+                console.error('Invalid token:', err);
+                localStorage.removeItem('token');
+            }
         }
-      }, []);
+    }, []);
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, isFreeLancer }}>
+        <AuthContext.Provider value={{ user, login, logout, isFreeLancer, getToken }}>
             {children}
         </AuthContext.Provider>
     );
