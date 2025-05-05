@@ -12,7 +12,6 @@ class User(db.Model):
     is_freelancer = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, default=func.now())
 
-    profile = db.relationship('FreelancerProfile', backref='user', uselist=False)
     appointments = db.relationship('Appointment', backref='client')
     reviews = db.relationship('Review', backref='author')
 

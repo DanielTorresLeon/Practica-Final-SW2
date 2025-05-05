@@ -1,15 +1,17 @@
 from flask_restx import Namespace, Resource, fields
 from flask import request
 from ..services.serv_service import ServiceService, CategoryService
-from ..utils.jwt_utils import jwt_required, get_current_user
+from ..utils.jwt_utils import jwt_required
 
 api = Namespace('services', description='Service operations')
 
 service_model = api.model('Service', {
-    'freelancer_id': fields.Integer(required=True, description='Freelancer ID'),
+    'id': fields.Integer(readonly=True, description='Service ID'),
+    'user_id': fields.Integer(required=True, description='User ID'),
     'category_id': fields.Integer(required=True, description='Category ID'),
     'title': fields.String(required=True, description='Service title'),
-    'price': fields.Float(required=True, description='Service price')
+    'price': fields.Float(required=True, description='Service price'),
+    'description': fields.String(required=False, description='Service description')
 })
 
 service_update_model = api.model('ServiceUpdate', {
@@ -30,23 +32,22 @@ class ServiceList(Resource):
         services, error, status_code = ServiceService.get_all_services()
         if error:
             return {'message': error}, status_code
-        return [service.__dict__ for service in services], status_code
+        return [service.to_dict() for service in services], status_code
 
     @api.doc('create_service')
     @api.expect(service_model)
+    @api.marshal_with(service_model, code=201)
     @jwt_required()
-    def post(self):
+    def post(self, current_user):
         """Create a new service"""
-        current_user = get_current_user()
         if not current_user.is_freelancer:
             return {'message': 'Only freelancers can create services'}, 403
-
         data = request.get_json()
-        data['freelancer_id'] = current_user.id
+        data['user_id'] = current_user.id
         service, error, status_code = ServiceService.create_service(**data)
         if error:
             return {'message': error}, status_code
-        return service.__dict__, status_code
+        return service, status_code
 
 @api.route('/<int:service_id>')
 class ServiceResource(Resource):
@@ -56,39 +57,33 @@ class ServiceResource(Resource):
         service, error, status_code = ServiceService.get_service_by_id(service_id)
         if error:
             return {'message': error}, status_code
-        return service.__dict__, status_code
+        return service.to_dict(), status_code
 
     @api.doc('update_service')
     @api.expect(service_update_model)
     @jwt_required()
-    def put(self, service_id):
+    def put(self, service_id, current_user):
         """Update a service"""
-        current_user = get_current_user()
         service, error, status_code = ServiceService.get_service_by_id(service_id)
         if error:
             return {'message': error}, status_code
-
-        if service.freelancer_id != current_user.id:
+        if service.user_id != current_user.id:
             return {'message': 'You can only update your own services'}, 403
-
         data = request.get_json()
         updated_service, error, status_code = ServiceService.update_service(service_id, **data)
         if error:
             return {'message': error}, status_code
-        return updated_service.__dict__, status_code
+        return updated_service.to_dict(), status_code
 
     @api.doc('delete_service')
     @jwt_required()
-    def delete(self, service_id):
+    def delete(self, service_id, current_user):
         """Delete a service"""
-        current_user = get_current_user()
         service, error, status_code = ServiceService.get_service_by_id(service_id)
         if error:
             return {'message': error}, status_code
-
-        if service.freelancer_id != current_user.id:
+        if service.user_id != current_user.id:
             return {'message': 'You can only delete your own services'}, 403
-
         result, error, status_code = ServiceService.delete_service(service_id)
         if error:
             return {'message': error}, status_code
@@ -102,7 +97,7 @@ class FreelancerServices(Resource):
         services, error, status_code = ServiceService.get_services_by_freelancer(freelancer_id)
         if error:
             return {'message': error}, status_code
-        return [service.__dict__ for service in services], status_code
+        return [service.to_dict() for service in services], status_code
 
 @api.route('/category/<int:category_id>')
 class CategoryServices(Resource):
@@ -112,9 +107,9 @@ class CategoryServices(Resource):
         services, error, status_code = ServiceService.get_services_by_category(category_id)
         if error:
             return {'message': error}, status_code
-        return [service.__dict__ for service in services], status_code
+        return [service.to_dict() for service in services], status_code
 
-@api.route('/categories/')
+@api.route('/categories')
 class CategoryList(Resource):
     @api.doc('list_categories')
     def get(self):
@@ -122,22 +117,20 @@ class CategoryList(Resource):
         categories, error, status_code = CategoryService.get_all_categories()
         if error:
             return {'message': error}, status_code
-        return [category.__dict__ for category in categories], status_code
+        return [category.to_dict() for category in categories], status_code
 
     @api.doc('create_category')
     @api.expect(category_model)
     @jwt_required()
-    def post(self):
+    def post(self, current_user):
         """Create a new category"""
-        current_user = get_current_user()
-        if not current_user.is_admin:  # Assuming you have an is_admin field
+        if not current_user.is_admin:
             return {'message': 'Only admins can create categories'}, 403
-
         data = request.get_json()
         category, error, status_code = CategoryService.create_category(**data)
         if error:
             return {'message': error}, status_code
-        return category.__dict__, status_code
+        return category.to_dict(), status_code
 
 @api.route('/categories/<int:category_id>')
 class CategoryResource(Resource):
@@ -147,31 +140,27 @@ class CategoryResource(Resource):
         category, error, status_code = CategoryService.get_category_by_id(category_id)
         if error:
             return {'message': error}, status_code
-        return category.__dict__, status_code
+        return category.to_dict(), status_code
 
     @api.doc('update_category')
     @api.expect(category_model)
     @jwt_required()
-    def put(self, category_id):
+    def put(self, category_id, current_user):
         """Update a category"""
-        current_user = get_current_user()
         if not current_user.is_admin:
             return {'message': 'Only admins can update categories'}, 403
-
         data = request.get_json()
         updated_category, error, status_code = CategoryService.update_category(category_id, **data)
         if error:
             return {'message': error}, status_code
-        return updated_category.__dict__, status_code
+        return updated_category.to_dict(), status_code
 
     @api.doc('delete_category')
     @jwt_required()
-    def delete(self, category_id):
+    def delete(self, category_id, current_user):
         """Delete a category"""
-        current_user = get_current_user()
         if not current_user.is_admin:
             return {'message': 'Only admins can delete categories'}, 403
-
         result, error, status_code = CategoryService.delete_category(category_id)
         if error:
             return {'message': error}, status_code

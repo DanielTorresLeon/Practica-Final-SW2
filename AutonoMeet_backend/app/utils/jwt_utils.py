@@ -3,13 +3,14 @@ from datetime import datetime, timedelta
 from flask import current_app, request, jsonify
 from functools import wraps
 from jwt import ExpiredSignatureError, InvalidTokenError
+from app.models.user import User
 
 def generate_access_token(user):
     expiration = datetime.utcnow() + timedelta(hours=2)
     payload = {
-        "sub": str(user.id), 
-        "email": user.email if user.email else None,  
-        "is_freelancer": user.is_freelancer, 
+        "sub": str(user.id),
+        "email": user.email if user.email else None,
+        "is_freelancer": user.is_freelancer,
         "exp": expiration
     }
     token = jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
@@ -29,11 +30,11 @@ def jwt_required(f=None, *, optional=False):
                 if token.startswith('Bearer '):
                     token = token.split(' ')[1]
                 payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-                kwargs['current_user'] = {
-                    'id': payload['sub'],
-                    'email': payload['email'],
-                    'is_freelancer': payload['is_freelancer']
-                }
+                # Query the User model using the 'sub' (user ID)
+                current_user = User.query.filter_by(id=payload['sub']).first()
+                if not current_user:
+                    return jsonify({"message": "User not found"}), 401
+                kwargs['current_user'] = current_user
             except ExpiredSignatureError:
                 return jsonify({"message": "Token has expired"}), 401
             except InvalidTokenError:
@@ -55,10 +56,7 @@ def get_current_user():
         if token.startswith('Bearer '):
             token = token.split(' ')[1]
         payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-        return {
-            'id': payload['sub'],
-            'email': payload['email'],
-            'is_freelancer': payload['is_freelancer']
-        }
+        # Query the User model using the 'sub' (user ID)
+        return User.query.filter_by(id=payload['sub']).first()
     except:
         return None

@@ -1,59 +1,87 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendar, faSearch, faUser, faSignOutAlt, faBriefcase, faDollarSign, faPlus, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faCalendar, faSearch, faUser, faSignOutAlt, 
+  faBriefcase, faDollarSign, faPlus, faEdit, faTrash,
+  faInfoCircle, faStar, faClock
+} from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext'; 
+import { ServiceService } from '../../services/ServiceService';
 import '../../styles/freelancerHome.css';
 
 interface Service {
   id: number;
   title: string;
   price: number;
+  description?: string;
   category_id: number;
+  user_id: number;
   category?: {
     name: string;
   };
+  average_rating?: number;
+  duration_minutes?: number;
+  created_at?: string;
 }
 
 const FreelancerHome = () => {
   const navigate = useNavigate();
-  const { user, logout, getToken } = useAuth();
+  const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [stats, setStats] = useState({
+    totalServices: 0,
+    totalEarnings: 0,
+    averageRating: 0
+  });
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const token = await getToken();
-        const response = await fetch(`/api/v0/services/freelancer/${user?.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch services');
+        console.log(user)
+        if (!user?.id) {
+          setError('User not authenticated');
+          setLoading(false);
+          return;
+        }
+
+        if (!user.is_freelancer) {
+          setError(`User with ID ${user.id} is not registered as a freelancer`);
+          setLoading(false);
+          return;
         }
         
-        const data = await response.json();
-        setServices(data);
+        console.log(user.id)
+        const servicesData = await ServiceService.getFreelancerServices(Number(user.id));
+        setServices(servicesData);
+
+        // Calculate stats
+        const totalEarnings = servicesData.reduce((sum, service) => sum + service.price, 0);
+        const avgRating = servicesData.reduce((sum, service) => sum + (service.average_rating || 0), 0) / 
+                         (servicesData.length || 1);
+        
+        setStats({
+          totalServices: servicesData.length,
+          totalEarnings,
+          averageRating: parseFloat(avgRating.toFixed(1))
+        });
+
       } catch (err) {
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'Failed to load services');
+        console.error('Service fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user?.id) {
-      fetchServices();
-    }
-  }, [user?.id, getToken]);
+    fetchServices();
+  }, [user]);
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Searching clients:', searchQuery);
     navigate(`/freelancer/clients?query=${searchQuery}`);
   };
 
@@ -63,33 +91,22 @@ const FreelancerHome = () => {
   };
 
   const handleDeleteService = async (serviceId: number) => {
-    try {
-      const token = await getToken();
-      const response = await fetch(`/api/v0/services/${serviceId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete service');
+    if (window.confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+      try {
+        await ServiceService.deleteService(serviceId);
+        setServices(services.filter(service => service.id !== serviceId));
+        // Update stats after deletion
+        setStats(prev => ({
+          ...prev,
+          totalServices: prev.totalServices - 1
+        }));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete service');
       }
-      
-      setServices(services.filter(service => service.id !== serviceId));
-    } catch (err) {
-      setError(err.message);
     }
   };
 
-  // Mock data for other sections (appointments, earnings, etc.)
-  const upcomingAppointments = [
-    { id: 1, client: 'Sarah Johnson', service: 'Haircut', date: '2025-04-15', time: '10:00 AM' },
-  ];
-
-  const earnings = [
-    { month: 'March 2025', amount: 1250, completedJobs: 12 },
-  ];
+  
 
   return (
     <div className="freelancer-container">
@@ -104,48 +121,105 @@ const FreelancerHome = () => {
       </header>
 
       <main className="main-content">
-        {/* Services Section - Now with real data */}
+        {/* Services Dashboard */}
+        <section className="dashboard-stats">
+          <div className="stat-card">
+            <h3>Total Services</h3>
+            <p className="stat-value">{stats.totalServices}</p>
+          </div>
+          <div className="stat-card">
+            <h3>Total Earnings</h3>
+            <p className="stat-value">${stats.totalEarnings.toFixed(2)}</p>
+          </div>
+          <div className="stat-card">
+            <h3>Average Rating</h3>
+            <p className="stat-value">
+              <FontAwesomeIcon icon={faStar} color="gold" /> {stats.averageRating}
+            </p>
+          </div>
+        </section>
+
+        {/* Services Section */}
         <section className="section services">
-          <h2>
-            <FontAwesomeIcon icon={faBriefcase} /> Your Services
+          <div className="section-header">
+            <h2>
+              <FontAwesomeIcon icon={faBriefcase} /> Your Services
+            </h2>
             <button 
               className="add-service-btn"
               onClick={() => navigate('/freelancer/services/new')}
             >
               <FontAwesomeIcon icon={faPlus} /> Add Service
             </button>
-          </h2>
+          </div>
           
           {loading ? (
-            <p>Loading services...</p>
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Loading your services...</p>
+            </div>
           ) : error ? (
-            <p className="error">{error}</p>
+            <div className="error-message">
+              <h4>Error Loading Services</h4>
+              <p>{error}</p>
+              {user && !user.is_freelancer && (
+                <button 
+                  className="cta-btn"
+                  onClick={() => navigate('/profile/settings')}
+                >
+                  Upgrade to Freelancer Account
+                </button>
+              )}
+            </div>
           ) : services.length > 0 ? (
-            <ul className="service-list">
+            <div className="services-grid">
               {services.map((service) => (
-                <li key={service.id} className="service-item">
-                  <div className="service-info">
+                <div key={service.id} className="service-card">
+                  <div className="service-header">
                     <h3>{service.title}</h3>
-                    <p>${service.price.toFixed(2)}</p>
-                    {service.category && <span className="category-tag">{service.category.name}</span>}
+                    <div className="service-meta">
+                      <span className="service-price">${service.price.toFixed(2)}</span>
+                      {service.duration_minutes && (
+                        <span className="service-duration">
+                          <FontAwesomeIcon icon={faClock} /> {service.duration_minutes} mins
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  
+                  {service.description && (
+                    <p className="service-description">{service.description}</p>
+                  )}
+                  
+                  <div className="service-footer">
+                    {service.category && (
+                      <span className="service-category">{service.category.name}</span>
+                    )}
+                    {service.average_rating && (
+                      <span className="service-rating">
+                        <FontAwesomeIcon icon={faStar} color="gold" /> {service.average_rating.toFixed(1)}
+                      </span>
+                    )}
+                  
+                  </div>
+                  
                   <div className="service-actions">
                     <button 
                       className="edit-btn"
                       onClick={() => navigate(`/freelancer/services/edit/${service.id}`)}
                     >
-                      <FontAwesomeIcon icon={faEdit} />
+                      <FontAwesomeIcon icon={faEdit} /> Edit
                     </button>
                     <button 
                       className="delete-btn"
                       onClick={() => handleDeleteService(service.id)}
                     >
-                      <FontAwesomeIcon icon={faTrash} />
+                      <FontAwesomeIcon icon={faTrash} /> Delete
                     </button>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
             <div className="no-services">
               <p>You haven't added any services yet.</p>
@@ -159,60 +233,14 @@ const FreelancerHome = () => {
           )}
         </section>
 
-        {/* Other sections remain similar but shortened for brevity */}
+        {/* Other Sections (simplified for brevity) */}
         <section className="section appointments">
           <h2>
-            <FontAwesomeIcon icon={faCalendar} /> Upcoming Appointments
+            <FontAwesomeIcon icon={faCalendar} /> Recent Activity
           </h2>
-          {upcomingAppointments.length > 0 ? (
-            <ul className="appointment-list">
-              {upcomingAppointments.map((appointment) => (
-                <li key={appointment.id} className="appointment-item">
-                  <div>
-                    <strong>{appointment.service}</strong> for {appointment.client}
-                  </div>
-                  <div>
-                    {appointment.date} at {appointment.time}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No upcoming appointments scheduled.</p>
-          )}
-        </section>
-
-        <section className="section earnings">
-          <h2>
-            <FontAwesomeIcon icon={faDollarSign} /> Earnings Overview
-          </h2>
-          <div className="earnings-stats">
-            {earnings.map((earning, index) => (
-              <div key={index} className="stat-card">
-                <h3>{earning.month}</h3>
-                <p className="amount">${earning.amount.toFixed(2)}</p>
-                <p className="meta">{earning.completedJobs} jobs completed</p>
-              </div>
-            ))}
+          <div className="coming-soon">
+            <p>Activity feed coming soon!</p>
           </div>
-        </section>
-
-        <section className="section search">
-          <h2>
-            <FontAwesomeIcon icon={faSearch} /> Search Clients
-          </h2>
-          <form onSubmit={handleSearch} className="search-form">
-            <input
-              type="text"
-              placeholder="Search client history..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-            <button type="submit" className="search-btn">
-              Search
-            </button>
-          </form>
         </section>
       </main>
 

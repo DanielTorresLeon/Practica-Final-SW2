@@ -30,10 +30,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('token', token);
         const decoded = jwtDecode<User>(token);
         setUser({
-            id: decoded.id,
+            id: decoded.sub,
+
             email: decoded.email,
             is_freelancer: decoded.is_freelancer
         });
+        console.log("ajsdgha")
+        console.log(user)
+
         return decoded;
     };
 
