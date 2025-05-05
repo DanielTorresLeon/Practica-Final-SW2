@@ -6,7 +6,6 @@ class Review(db.Model):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     author_id = Column(Integer, ForeignKey('users.id'))
-    freelancer_id = Column(Integer, ForeignKey('freelancer_profiles.id'))
     rating = Column(SmallInteger, nullable=False)
     comment = Column(Text)
 

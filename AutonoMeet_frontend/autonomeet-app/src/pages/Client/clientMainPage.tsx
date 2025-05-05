@@ -1,27 +1,40 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendar, faSearch, faUser, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-import { useAuth } from '../../context/AuthContext'; 
+import { useAuth } from '../../context/AuthContext';
+import { ServiceService } from '../../services/ServiceService';
 import '../../styles/clientHome.css';
 
-const Home = () => {
+const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
   const appointments = [
     { id: 1, freelancer: 'John Smith', service: 'Haircut', date: '2025-04-15', time: '10:00 AM' },
     { id: 2, freelancer: 'Anna Brown', service: 'Math Tutoring', date: '2025-04-16', time: '2:00 PM' },
   ];
 
-  const categories = ['All', 'Hair Salon', 'Plumbing', 'Tutoring', 'Cleaning'];
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoadingCategories(true);
+        const categoriesData = await ServiceService.getCategories();
+        setCategories(categoriesData.map(cat => cat.name));
+      } catch (err: any) {
+        console.error('Error loading categories:', err);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+    loadCategories();
+  }, []);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    console.log('Searching:', searchQuery, 'Category:', selectedCategory);
-    navigate(`/services?query=${searchQuery}&category=${selectedCategory}`);
+  const handleViewServices = () => {
+    navigate('/services');
   };
 
   const handleLogout = () => {
@@ -42,6 +55,28 @@ const Home = () => {
       </header>
 
       <main className="main-content">
+        <section className="section categories">
+          <h2>
+            <FontAwesomeIcon icon={faSearch} /> Service Categories
+          </h2>
+          {isLoadingCategories ? (
+            <p>Loading categories...</p>
+          ) : categories.length > 0 ? (
+            <ul className="category-list">
+              {categories.map((category) => (
+                <li key={category} className="category-item">
+                  {category}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No categories available.</p>
+          )}
+          <button className="cta-btn view-services-btn" onClick={handleViewServices}>
+            View Services
+          </button>
+        </section>
+
         <section className="section appointments">
           <h2>
             <FontAwesomeIcon icon={faCalendar} /> Your Appointments
@@ -66,35 +101,6 @@ const Home = () => {
           <button className="cta-btn" onClick={() => navigate('/services')}>
             Book a Service
           </button>
-        </section>
-
-        <section className="section search">
-          <h2>
-            <FontAwesomeIcon icon={faSearch} /> Search Services
-          </h2>
-          <form onSubmit={handleSearch} className="search-form">
-            <input
-              type="text"
-              placeholder="Search for a service..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="category-select"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-            <button type="submit" className="search-btn">
-              Search
-            </button>
-          </form>
         </section>
 
         <section className="section profile">
