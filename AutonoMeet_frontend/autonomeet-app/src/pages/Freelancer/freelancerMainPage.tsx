@@ -6,9 +6,15 @@ import {
   faBriefcase, faDollarSign, faPlus, faEdit, faTrash,
   faInfoCircle, faStar, faClock
 } from '@fortawesome/free-solid-svg-icons';
+import Calendar from 'react-calendar';
+import Modal from 'react-modal';
 import { useAuth } from '../../context/AuthContext'; 
 import { ServiceService } from '../../services/ServiceService';
+import { AppointmentService } from '../../services/AppointmentService';
+import 'react-calendar/dist/Calendar.css';
 import '../../styles/freelancerHome.css';
+
+Modal.setAppElement('#root');
 
 interface Service {
   id: number;
@@ -25,11 +31,26 @@ interface Service {
   created_at?: string;
 }
 
+interface Appointment {
+  id: number;
+  client_id: number;
+  service_id: number;
+  scheduled_at: string;
+  created_at: string;
+}
+
+interface AppointmentWithService extends Appointment {
+  service?: {
+    title: string;
+  };
+}
+
 const FreelancerHome = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [services, setServices] = useState<Service[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentWithService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({
@@ -37,11 +58,12 @@ const FreelancerHome = () => {
     totalEarnings: 0,
     averageRating: 0
   });
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date(new Date().setDate(new Date().getDate() + 1)));
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchServices = async () => {
+    const fetchData = async () => {
       try {
-        console.log(user)
         if (!user?.id) {
           setError('User not authenticated');
           setLoading(false);
@@ -53,10 +75,25 @@ const FreelancerHome = () => {
           setLoading(false);
           return;
         }
-        
-        console.log(user.id)
+
+        // Fetch services
         const servicesData = await ServiceService.getFreelancerServices(Number(user.id));
         setServices(servicesData);
+
+        // Fetch appointments and enrich with service details
+        const appointmentsData = await AppointmentService.getAppointmentsByFreelancer(Number(user.id));
+        const appointmentsWithService = await Promise.all(
+          appointmentsData.map(async (appointment) => {
+            try {
+              const service = await ServiceService.getServiceById(appointment.service_id);
+              return { ...appointment, service: { title: service.title } };
+            } catch (err) {
+              console.error(`Error fetching service ${appointment.service_id}:`, err);
+              return appointment;
+            }
+          })
+        );
+        setAppointments(appointmentsWithService);
 
         // Calculate stats
         const totalEarnings = servicesData.reduce((sum, service) => sum + service.price, 0);
@@ -70,14 +107,14 @@ const FreelancerHome = () => {
         });
 
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load services');
-        console.error('Service fetch error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        console.error('Data fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchServices();
+    fetchData();
   }, [user]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -95,7 +132,6 @@ const FreelancerHome = () => {
       try {
         await ServiceService.deleteService(serviceId);
         setServices(services.filter(service => service.id !== serviceId));
-        // Update stats after deletion
         setStats(prev => ({
           ...prev,
           totalServices: prev.totalServices - 1
@@ -106,7 +142,43 @@ const FreelancerHome = () => {
     }
   };
 
-  
+  const getAppointmentsForDate = (date: Date): AppointmentWithService[] => {
+    return appointments.filter(appointment => {
+      const apptDate = new Date(appointment.scheduled_at);
+      return (
+        apptDate.getFullYear() === date.getFullYear() &&
+        apptDate.getMonth() === date.getMonth() &&
+        apptDate.getDate() === date.getDate()
+      );
+    });
+  };
+
+  const formatDateTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
+  const tileClassName = ({ date }: { date: Date }) => {
+    const appts = getAppointmentsForDate(date);
+    return appts.length > 0 ? 'has-appointments' : null;
+  };
+
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date);
+  };
+
+  const openAllAppointmentsModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const selectedDateAppointments = getAppointmentsForDate(selectedDate);
 
   return (
     <div className="freelancer-container">
@@ -121,7 +193,7 @@ const FreelancerHome = () => {
       </header>
 
       <main className="main-content">
-        {/* Services Dashboard */}
+        {/* Dashboard Stats */}
         <section className="dashboard-stats">
           <div className="stat-card">
             <h3>Total Services</h3>
@@ -137,6 +209,45 @@ const FreelancerHome = () => {
               <FontAwesomeIcon icon={faStar} color="gold" /> {stats.averageRating}
             </p>
           </div>
+        </section>
+
+        {/* Appointments Calendar */}
+        <section className="section appointments">
+          <div className="section-header">
+            <h2>
+              <FontAwesomeIcon icon={faCalendar} /> Your Schedule
+            </h2>
+            <button className="cta-btn" onClick={openAllAppointmentsModal}>
+              View All Appointments
+            </button>
+          </div>
+          <div style={{ marginBottom: '20px' }}>
+            <Calendar
+              onChange={handleDateChange}
+              value={selectedDate}
+              tileClassName={tileClassName}
+            />
+          </div>
+          <h3>Appointments for {selectedDate.toLocaleDateString()}</h3>
+          {selectedDateAppointments.length > 0 ? (
+            <ul className="appointment-list">
+              {selectedDateAppointments.map((appointment) => {
+                const { date, time } = formatDateTime(appointment.scheduled_at);
+                return (
+                  <li key={appointment.id} className="appointment-item">
+                    <div>
+                      <strong>{appointment.service?.title || 'Unknown Service'}</strong>
+                    </div>
+                    <div>
+                      {date} at {time}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p>No appointments scheduled for this date.</p>
+          )}
         </section>
 
         {/* Services Section */}
@@ -200,7 +311,6 @@ const FreelancerHome = () => {
                         <FontAwesomeIcon icon={faStar} color="gold" /> {service.average_rating.toFixed(1)}
                       </span>
                     )}
-                  
                   </div>
                   
                   <div className="service-actions">
@@ -232,17 +342,63 @@ const FreelancerHome = () => {
             </div>
           )}
         </section>
-
-        {/* Other Sections (simplified for brevity) */}
-        <section className="section appointments">
-          <h2>
-            <FontAwesomeIcon icon={faCalendar} /> Recent Activity
-          </h2>
-          <div className="coming-soon">
-            <p>Activity feed coming soon!</p>
-          </div>
-        </section>
       </main>
+
+      {/* All Appointments Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        style={{
+          content: {
+            top: '50%',
+            left: '50%',
+            right: 'auto',
+            bottom: 'auto',
+            marginRight: '-50%',
+            transform: 'translate(-50%, -50%)',
+            maxWidth: '600px',
+            width: '90%',
+            padding: '20px',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }
+        }}
+      >
+        <h2>All Appointments</h2>
+        {appointments.length > 0 ? (
+          <ul className="appointment-list">
+            {appointments.map((appointment) => {
+              const { date, time } = formatDateTime(appointment.scheduled_at);
+              return (
+                <li key={appointment.id} className="appointment-item">
+                  <div>
+                    <strong>{appointment.service?.title || 'Unknown Service'}</strong>
+                  </div>
+                  <div>
+                    {date} at {time}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p>You have no scheduled appointments.</p>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={closeModal}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#6c757d',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px'
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </Modal>
 
       <footer className="footer">
         <p>© 2025 AutonoMeet. All rights reserved.</p>

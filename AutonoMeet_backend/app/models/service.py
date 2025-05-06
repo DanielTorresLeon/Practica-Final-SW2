@@ -11,9 +11,9 @@ class Service(db.Model):
     category_id = Column(Integer, ForeignKey('categories.id'))
     title = Column(String(255), nullable=False)
     price = Column(Float, nullable=False)
+    duration = Column(Integer, nullable=False)
     description = Column(String(500))
 
-    appointments = relationship('Appointment', backref='service')
     category = relationship('Category', backref='services')
     user = relationship('User', backref='services')
 
@@ -34,5 +34,6 @@ class Service(db.Model):
             } if self.category else None,
             'title': self.title,
             'price': self.price,
+            'duration': self.duration,
             'description': self.description
         }

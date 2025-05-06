@@ -14,20 +14,20 @@ const FreelancerServicesNew = () => {
     price: '',
     description: '',
     category_id: '',
+    duration: '', // Added duration field
   });
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
-  // Load categories when component mounts
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const categoriesData = await ServiceService.getCategories();
         setCategories(categoriesData);
         setIsLoadingCategories(false);
-      } catch (err: any) {
+      } catch (err) {
         setError(err.message || 'Failed to load categories. Please try again.');
         setIsLoadingCategories(false);
       }
@@ -36,7 +36,7 @@ const FreelancerServicesNew = () => {
     loadCategories();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -44,7 +44,7 @@ const FreelancerServicesNew = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!user?.id || !user.is_freelancer) {
@@ -52,16 +52,20 @@ const FreelancerServicesNew = () => {
       return;
     }
 
-    // Validate required fields
-    if (!formData.title || !formData.price || !formData.category_id) {
-      setError('Title, price, and category are required');
+    if (!formData.title || !formData.price || !formData.category_id || !formData.duration) {
+      setError('Title, price, category, and duration are required');
       return;
     }
 
-    // Validate price
     const price = parseFloat(formData.price);
     if (isNaN(price) || price <= 0) {
       setError('Price must be a positive number');
+      return;
+    }
+
+    const duration = parseInt(formData.duration);
+    if (isNaN(duration) || duration <= 0) {
+      setError('Duration must be a positive number');
       return;
     }
 
@@ -74,14 +78,15 @@ const FreelancerServicesNew = () => {
         price: price,
         description: formData.description || undefined,
         category_id: parseInt(formData.category_id),
-        user_id: parseInt(user.id), // Convert string to number
+        user_id: parseInt(user.id),
+        duration: duration, // Added duration to serviceData
       };
 
       await ServiceService.createService(serviceData);
       navigate('/freelancer', {
         state: { message: 'Service created successfully!' },
       });
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message || 'Failed to create service');
     } finally {
       setLoading(false);
@@ -133,6 +138,21 @@ const FreelancerServicesNew = () => {
               required
             />
           </div>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="duration">Duration (minutes)*</label>
+          <input
+            type="number"
+            id="duration"
+            name="duration"
+            value={formData.duration}
+            onChange={handleChange}
+            placeholder="e.g., 30"
+            min="1"
+            step="1"
+            required
+          />
         </div>
 
         <div className="form-group">

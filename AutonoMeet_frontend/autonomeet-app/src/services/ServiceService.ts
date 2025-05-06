@@ -32,7 +32,7 @@ interface UpdateServiceData {
   price?: number;
   description?: string;
   category_id?: number;
-  duration_minutes?: number;
+  duration?: number;
 }
 
 export const ServiceService = {

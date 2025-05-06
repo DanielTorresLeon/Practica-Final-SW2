@@ -60,11 +60,11 @@ def create_app():
     def handle_no_authorization_error(e):
         return jsonify({"message": "Missing Authorization Header"}), 401
 
-    # Import and register all route namespaces
     from app.routes import auth_routes
-    from app.routes import serv_routes  
+    from app.routes import serv_routes, appointments
     
     api.add_namespace(auth_routes.api, path=f"{API_PREFIX}/auth")
     api.add_namespace(serv_routes.api, path=f"{API_PREFIX}/services") 
+    api.add_namespace(appointments.api, path=f"{API_PREFIX}/appointments") 
 
     return app
