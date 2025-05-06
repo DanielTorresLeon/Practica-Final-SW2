@@ -11,13 +11,15 @@ service_model = api.model('Service', {
     'category_id': fields.Integer(required=True, description='Category ID'),
     'title': fields.String(required=True, description='Service title'),
     'price': fields.Float(required=True, description='Service price'),
+    'duration': fields.Integer(required=True, description='Service duration in minutes'), 
     'description': fields.String(required=False, description='Service description')
 })
 
 service_update_model = api.model('ServiceUpdate', {
     'category_id': fields.Integer(required=False, description='Category ID'),
     'title': fields.String(required=False, description='Service title'),
-    'price': fields.Float(required=False, description='Service price')
+    'price': fields.Float(required=False, description='Service price'),
+    'duration': fields.Integer(required=False, description='Service duration in minutes')  
 })
 
 category_model = api.model('Category', {

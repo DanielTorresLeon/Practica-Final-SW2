@@ -20,7 +20,7 @@ interface Service {
     email: string;
   };
   average_rating?: number;
-  duration_minutes?: number;
+  duration?: number;
 }
 
 const ServicesPage: React.FC = () => {
@@ -172,9 +172,9 @@ const ServicesPage: React.FC = () => {
               )}
               <div className="service-meta">
                 {service.category && <span className="service-category">{service.category.name}</span>}
-                {service.duration_minutes && (
+                {service.duration && (
                   <span className="service-duration">
-                    <FontAwesomeIcon icon={faClock} /> {service.duration_minutes} mins
+                    <FontAwesomeIcon icon={faClock} /> {service.duration} mins
                   </span>
                 )}
                 {service.average_rating && (

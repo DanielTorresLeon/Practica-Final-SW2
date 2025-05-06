@@ -13,7 +13,7 @@ class ServiceService:
             return None, f"Error retrieving services: {str(e)}", 500
 
     @staticmethod
-    def create_service(user_id, category_id, title, price, description=None):
+    def create_service(user_id, category_id, title, price, duration, description=None):
         try:
             from app.models.user import User
             from app.models.category import Category
@@ -21,11 +21,14 @@ class ServiceService:
                 return None, "User not found", 400
             if not Category.query.get(category_id):
                 return None, "Category not found", 400
+            if not isinstance(duration, int) or duration <= 0:
+                return None, "Duration must be a positive integer", 400
             service = Service(
                 user_id=user_id,
                 category_id=category_id,
                 title=title,
                 price=price,
+                duration=duration,  # Added duration
                 description=description
             )
             db.session.add(service)
@@ -55,6 +58,8 @@ class ServiceService:
                 return None, "Service not found", 404
             if 'price' in kwargs and kwargs['price'] <= 0:
                 return None, "Price must be greater than 0", 400
+            if 'duration' in kwargs and (not isinstance(kwargs['duration'], int) or kwargs['duration'] <= 0):
+                return None, "Duration must be a positive integer", 400
             for key, value in kwargs.items():
                 if hasattr(service, key):
                     setattr(service, key, value)
