@@ -14,7 +14,7 @@ const FreelancerServicesNew = () => {
     price: '',
     description: '',
     category_id: '',
-    duration: '', // Added duration field
+    duration: '',
   });
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,8 +58,8 @@ const FreelancerServicesNew = () => {
     }
 
     const price = parseFloat(formData.price);
-    if (isNaN(price) || price <= 0) {
-      setError('Price must be a positive number');
+    if (isNaN(price) || price < 0.50) {
+      setError('Price must be at least $0.50');
       return;
     }
 
@@ -79,7 +79,7 @@ const FreelancerServicesNew = () => {
         description: formData.description || undefined,
         category_id: parseInt(formData.category_id),
         user_id: parseInt(user.id),
-        duration: duration, // Added duration to serviceData
+        duration: duration,
       };
 
       await ServiceService.createService(serviceData);
@@ -132,8 +132,8 @@ const FreelancerServicesNew = () => {
               name="price"
               value={formData.price}
               onChange={handleChange}
-              placeholder="0.00"
-              min="0.01"
+              placeholder="0.50"
+              min="0.50"
               step="0.01"
               required
             />

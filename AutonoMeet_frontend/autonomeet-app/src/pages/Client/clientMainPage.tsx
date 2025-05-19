@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendar, faSearch, faUser, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -22,71 +22,154 @@ interface Appointment {
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
 
+  console.log('Component rendering. Current appointments:', appointments.length);
+  console.log('Location state:', location.state);
+
+  const retry = async <T,>(fn: () => Promise<T>, retries: number = 3, delay: number = 1000): Promise<T> => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        if (attempt === retries) throw err;
+        console.log(`Retry attempt ${attempt} failed:`, err);
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt - 1)));
+      }
+    }
+    throw new Error('Unexpected retry failure');
+  };
+
+  const loadCategories = async () => {
+    try {
+      console.log('Starting categories load');
+      setIsLoadingCategories(true);
+      const categoriesData = await retry(() => ServiceService.getCategories());
+      console.log('Categories loaded:', categoriesData.length);
+      setCategories(categoriesData.map(cat => cat.name));
+    } catch (err: any) {
+      console.error('Error loading categories:', err);
+      setError('Failed to load categories');
+    } finally {
+      setIsLoadingCategories(false);
+      console.log('Categories loading completed');
+    }
+  };
+
+  const loadAppointments = async (forceRefresh: boolean = false) => {
+    console.log('loadAppointments called. forceRefresh:', forceRefresh, 'user?.id:', user?.id);
+    
+    if (!user?.id) {
+      console.log('No user ID, skipping appointment load');
+      setIsLoadingAppointments(false);
+      return;
+    }
+
+    try {
+      setIsLoadingAppointments(true);
+      
+      // Eliminamos la caché completamente para asegurar datos frescos
+      console.log('Fetching fresh appointments data for user:', user.id);
+      const appointmentsData = await retry(() => AppointmentService.getAppointmentsByClient(user.id));
+      console.log('Raw appointments data received:', appointmentsData);
+      
+      const appointmentsWithDetails = await Promise.all(
+        appointmentsData.map(async (appointment: Appointment) => {
+          try {
+            console.log(`Fetching service details for appointment ${appointment.id}`);
+            const service = await retry(() => ServiceService.getServiceById(appointment.service_id));
+            return { ...appointment, service };
+          } catch (err) {
+            console.error(`Failed to fetch service for appointment ${appointment.id}:`, err);
+            return appointment;
+          }
+        })
+      );
+
+      console.log('Processed appointments with details:', appointmentsWithDetails);
+      setAppointments(appointmentsWithDetails);
+      setLastFetchTime(Date.now());
+    } catch (err: any) {
+      console.error('Error loading appointments:', {
+        error: err.message,
+        stack: err.stack,
+        response: err.response?.data
+      });
+      setError('Failed to load appointments. Please try again later.');
+    } finally {
+      setIsLoadingAppointments(false);
+      console.log('Appointments loading completed');
+    }
+  };
+
+  // Carga inicial
   useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        setIsLoadingCategories(true);
-        const categoriesData = await ServiceService.getCategories();
-        setCategories(categoriesData.map(cat => cat.name));
-      } catch (err: any) {
-        console.error('Error loading categories:', err);
-        setError('Failed to load categories');
-      } finally {
-        setIsLoadingCategories(false);
-      }
-    };
-
-    const loadAppointments = async () => {
-      if (!user?.id) return;
-      try {
-        setIsLoadingAppointments(true);
-        const appointmentsData = await AppointmentService.getAppointmentsByClient(user.id);
-        
-        const appointmentsWithDetails = await Promise.all(
-          appointmentsData.map(async (appointment) => {
-            try {
-              const service = await ServiceService.getServiceById(appointment.service_id);
-              return { ...appointment, service };
-            } catch (err) {
-              console.error(`Error fetching service ${appointment.service_id}:`, err);
-              return appointment;
-            }
-          })
-        );
-        
-        setAppointments(appointmentsWithDetails);
-      } catch (err: any) {
-        console.error('Error loading appointments:', err);
-        setError('Failed to load appointments');
-      } finally {
-        setIsLoadingAppointments(false);
-      }
-    };
-
+    console.log('Initial load effect triggered');
     loadCategories();
     loadAppointments();
   }, [user?.id]);
 
+  // Efecto para recarga cuando cambia la ubicación
+  useEffect(() => {
+    console.log('Location changed effect triggered', {
+      pathname: location.pathname,
+      state: location.state,
+      key: location.key
+    });
+
+    // Recargar siempre que se entre a la página, no solo cuando hay refresh flag
+    console.log('Forcing appointments reload on location change');
+    loadAppointments(true);
+    
+    // Si hay refresh flag, mostrar mensaje especial
+    if (location.state?.refresh) {
+      console.log('Additional refresh flag detected');
+    }
+  }, [location.pathname]); // Cambiamos a location.pathname para detectar cualquier navegación
+
+  // Efecto para recarga cuando la página gana foco
+  useEffect(() => {
+    console.log('Setting up visibility change listener');
+    
+    const handleVisibilityChange = () => {
+      console.log('Visibility changed:', document.visibilityState);
+      if (document.visibilityState === 'visible') {
+        console.log('Page became visible, refreshing appointments');
+        loadAppointments(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      console.log('Cleaning up visibility change listener');
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.id]);
+
   const handleViewServices = () => {
-    navigate('/services');
+    console.log('Navigating to services');
+    navigate('/services', { state: { from: 'home' } });
   };
 
   const handleLogout = () => {
+    console.log('Logging out');
     logout();
     navigate('/');
   };
 
   const handleCancelAppointment = async (appointmentId: number) => {
+    console.log('Cancelling appointment:', appointmentId);
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
       try {
-        await AppointmentService.deleteAppointment(appointmentId);
+        await retry(() => AppointmentService.deleteAppointment(appointmentId));
+        console.log('Appointment cancelled successfully');
         setAppointments(appointments.filter(appointment => appointment.id !== appointmentId));
       } catch (err: any) {
         console.error('Error cancelling appointment:', err);
@@ -102,6 +185,8 @@ const Home: React.FC = () => {
       time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
   };
+
+  console.log('Rendering with appointments:', appointments);
 
   return (
     <div className="home-container">
