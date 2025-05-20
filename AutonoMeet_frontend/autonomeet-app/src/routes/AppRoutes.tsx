@@ -10,6 +10,7 @@ import FreelancerServicesNew from '../pages/Freelancer/freelancerServicesNew';
 import FreelancerServicesEdit from '../pages/Freelancer/freelancerServicesEdit';
 import ServicesPage from '../pages/Client/servicesPage';
 import ServiceDetailPage from '../pages/Client/serviceDetailPage';
+import SuccessPage from '../pages/Client/SuccessPage';
 
 const AppRoutes = () => {
   return (
@@ -22,6 +23,7 @@ const AppRoutes = () => {
           <Route path="/freelancer/services/edit/:serviceId" element={<FreelancerServicesEdit />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/services/:serviceId" element={<ServiceDetailPage />} />
+          <Route path="/success" element={<SuccessPage />} />
         </Route>
         
         <Route path="/" element={<Login />} />        

@@ -7,6 +7,8 @@ from flask_jwt_extended.exceptions import NoAuthorizationError, JWTExtendedExcep
 from flask_cors import CORS
 from app.config import Config
 from dotenv import load_dotenv
+import stripe
+import os
 
 load_dotenv()
 
@@ -34,6 +36,8 @@ def create_app():
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600 
     jwt = JWTManager(app)
     
+
+    stripe.api_key = app.config['STRIPE_SECRET_KEY']
     db.init_app(app)
     
     with app.app_context():

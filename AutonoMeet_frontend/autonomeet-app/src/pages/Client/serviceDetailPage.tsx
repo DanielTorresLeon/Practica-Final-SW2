@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDollarSign, faStar, faClock, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import Calendar from 'react-calendar';
@@ -9,6 +9,9 @@ import { AppointmentService } from '../../services/AppointmentService';
 import 'react-calendar/dist/Calendar.css';
 import '../../styles/servicesPage.css';
 import { useAuth } from '../../context/AuthContext';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 Modal.setAppElement('#root');
 
@@ -42,7 +45,8 @@ interface Appointment {
 const ServiceDetailPage: React.FC = () => {
   const { serviceId } = useParams<{ serviceId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth(); 
+  const location = useLocation();
+  const { user, login } = useAuth();
   const [service, setService] = useState<Service | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +55,26 @@ const ServiceDetailPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const token = queryParams.get('token');
+    const canceled = queryParams.get('canceled');
+
+    // Only process if token and canceled are present and no prior message is set
+    if (token && canceled === 'true' && !bookingMessage) {
+      try {
+        login(token);
+        setBookingMessage('Payment was canceled.');
+        localStorage.removeItem('pendingAppointment'); // Clean up pending appointment
+        // Replace the URL to remove query parameters
+        navigate(`/services/${serviceId}`, { replace: true });
+      } catch (err) {
+        console.error('Invalid token:', err);
+        setBookingMessage('Failed to restore session. Please log in again.');
+      }
+    }
+  }, [location.search, login, navigate, serviceId, bookingMessage]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -149,8 +173,7 @@ const ServiceDetailPage: React.FC = () => {
 
     const scheduledAt = new Date(selectedDate);
     scheduledAt.setHours(hours, minutes, 0, 0);
-    
-    // Format datetime manually to preserve exact local time
+
     const year = scheduledAt.getFullYear();
     const month = String(scheduledAt.getMonth() + 1).padStart(2, '0');
     const day = String(scheduledAt.getDate()).padStart(2, '0');
@@ -160,24 +183,29 @@ const ServiceDetailPage: React.FC = () => {
     const scheduledAtString = `${year}-${month}-${day}T${hoursStr}:${minutesStr}:${secondsStr}`;
 
     try {
-      const appointmentData = {
-        client_id: user.id, 
+      localStorage.setItem('pendingAppointment', JSON.stringify({
+        serviceId: service.id,
+        scheduledAt: scheduledAtString,
+        userId: user.id
+      }));
+
+      const response = await AppointmentService.createCheckoutSession({
         service_id: service.id,
         scheduled_at: scheduledAtString,
-      };
+      });
 
-      const response = await AppointmentService.createAppointment(appointmentData);
-      setBookingMessage('Appointment booked successfully!');
-      
-      const updatedAppointments = await AppointmentService.getAppointmentsByFreelancer(service.user_id);
-      setAppointments(updatedAppointments);
-      
-      setIsModalOpen(false);
-      setSelectedDate(null);
-      setSelectedTime(null);
-      setTimeout(() => navigate('/user'), 2000);
+      const { sessionId } = response;
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe failed to load');
+      }
+
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+      if (error) {
+        setBookingMessage(error.message || 'Failed to initiate payment');
+      }
     } catch (err: any) {
-      setBookingMessage(err.response?.data?.message || err.message || 'Failed to book appointment');
+      setBookingMessage(err.message || 'Failed to initiate payment');
     }
   };
 
@@ -262,7 +290,7 @@ const ServiceDetailPage: React.FC = () => {
         </div>
         {selectedDate && (
           <div>
-            <h3>Available MTV Times on {selectedDate.toLocaleDateString()}</h3>
+            <h3>Available Times on {selectedDate.toLocaleDateString()}</h3>
             {availableSlots.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
                 {availableSlots.map((time) => (

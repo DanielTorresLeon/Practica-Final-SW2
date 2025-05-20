@@ -2,7 +2,7 @@ from app.models.appointment import Appointment
 from app.models.user import User
 from app.models.service import Service
 from app import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 
 class AppointmentService:
@@ -17,10 +17,39 @@ class AppointmentService:
                 return None, "Missing required fields", 400
 
             try:
-                # Parse datetime string without timezone conversion
                 scheduled_at = datetime.strptime(scheduled_at, '%Y-%m-%dT%H:%M:%S')
             except ValueError:
                 return None, "Invalid datetime format for scheduled_at, expected YYYY-MM-DDTHH:mm:ss", 400
+
+            existing_appointment = Appointment.query.filter_by(
+                client_id=client_id,
+                service_id=service_id,
+                scheduled_at=scheduled_at
+            ).first()
+
+            if existing_appointment:
+                return existing_appointment, "Appointment already exists", 200
+
+            service = Service.query.get(service_id)
+            if not service:
+                return None, "Service not found", 404
+
+            new_duration = service.duration  
+            new_end = scheduled_at + timedelta(minutes=new_duration)
+
+            freelancer_appointments = Appointment.query.join(Appointment.service).filter(
+                Service.user_id == service.user_id,
+                Appointment.scheduled_at >= scheduled_at - timedelta(days=1),  
+                Appointment.scheduled_at <= scheduled_at + timedelta(days=1)
+            ).options(joinedload(Appointment.service)).all()
+
+            for appt in freelancer_appointments:
+                appt_start = appt.scheduled_at
+                appt_duration = appt.service.duration
+                appt_end = appt_start + timedelta(minutes=appt_duration)
+
+                if scheduled_at < appt_end and new_end > appt_start:
+                    return None, f"Time slot unavailable: conflicts with another appointment at {appt_start.isoformat()}", 409
 
             new_appointment = Appointment(
                 client_id=client_id,
@@ -35,6 +64,7 @@ class AppointmentService:
         except Exception as e:
             db.session.rollback()
             return None, f"Error creating appointment: {str(e)}", 500
+        
 
     @staticmethod
     def update_appointment(appointment_id, data):
@@ -51,7 +81,6 @@ class AppointmentService:
 
             if 'scheduled_at' in data:
                 try:
-                    # Parse datetime string without timezone conversion
                     scheduled_at = datetime.strptime(data['scheduled_at'], '%Y-%m-%dT%H:%M:%S')
                     appointment.scheduled_at = scheduled_at
                 except ValueError:

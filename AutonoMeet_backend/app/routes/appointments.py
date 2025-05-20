@@ -1,7 +1,9 @@
 from flask_restx import Namespace, Resource, fields
-from flask import request
+from flask import request, current_app
 from app.services.appointment_service import AppointmentService
 from ..utils.jwt_utils import jwt_required
+from app.services.serv_service import ServiceService
+import stripe
 
 api = Namespace('appointments', description='Appointment Operations')
 
@@ -15,6 +17,11 @@ appointment_update_model = api.model('AppointmentUpdate', {
     'client_id': fields.Integer(required=False, description='ID of the client (user)'),
     'service_id': fields.Integer(required=False, description='ID of the service'),
     'scheduled_at': fields.DateTime(required=False, description='Scheduled date and time (ISO 8601 format)')
+})
+
+checkout_model = api.model('Checkout', {
+    'service_id': fields.Integer(required=True, description='ID of the service'),
+    'scheduled_at': fields.DateTime(required=True, description='Scheduled date and time (ISO 8601 format)')
 })
 
 @api.route('')
@@ -134,3 +141,87 @@ class ClientAppointments(Resource):
             "scheduled_at": appointment.scheduled_at.isoformat(),
             "created_at": appointment.created_at.isoformat()
         } for appointment in appointments], 200
+
+@api.route('/checkout')
+class AppointmentCheckout(Resource):
+    @jwt_required
+    @api.expect(checkout_model)
+    def post(self, current_user):
+        """Create a Stripe Checkout Session for an appointment"""
+        data = request.get_json()
+        service_id = data.get('service_id')
+        scheduled_at = data.get('scheduled_at')
+
+        try:
+            service, error, status_code = ServiceService.get_service_by_id(service_id)
+            if error:
+                return {"message": error}, status_code
+
+            auth_header = request.headers.get('Authorization')
+            token = auth_header.split(" ")[1] if auth_header else None
+
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[
+                    {
+                        'price_data': {
+                            'currency': 'usd',
+                            'unit_amount': int(service.price * 100),  
+                            'product_data': {
+                                'name': service.title,
+                            },
+                        },
+                        'quantity': 1,
+                    },
+                ],
+                mode='payment',
+                success_url='http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=f'http://localhost:5173/services/{service_id}?canceled=true&token={token}' if token else f'http://localhost:5173/services/{service_id}?canceled=true',
+                metadata={
+                    'client_id': current_user.id,
+                    'service_id': service_id,
+                    'scheduled_at': scheduled_at,
+                },
+            )
+            return {
+                'sessionId': checkout_session.id,
+                'publishableKey': current_app.config['STRIPE_PUBLISHABLE_KEY']
+            }, 200
+        except Exception as e:
+            return {"message": str(e)}, 400
+        
+@api.route('/success')
+class PaymentSuccess(Resource):
+    def get(self):
+        """Handle successful payment and create appointment"""
+        session_id = request.args.get('session_id')
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            if session.payment_status == 'paid':
+                if not all(key in session.metadata for key in ['client_id', 'service_id', 'scheduled_at']):
+                    return {"message": "Missing appointment data in Stripe session"}, 400
+                
+                appointment_data = {
+                    'client_id': int(session.metadata['client_id']),
+                    'service_id': int(session.metadata['service_id']),
+                    'scheduled_at': session.metadata['scheduled_at'],
+                }
+                
+                appointment, error, status_code = AppointmentService.create_appointment(appointment_data)
+                if error:
+                    return {"message": error}, status_code
+                
+                return {
+                    "message": "Appointment booked successfully",
+                    "appointment": {
+                        "id": appointment.id,
+                        "client_id": appointment.client_id,
+                        "service_id": appointment.service_id,
+                        "scheduled_at": appointment.scheduled_at.isoformat(),
+                        "created_at": appointment.created_at.isoformat()
+                    }
+                }, 200
+            else:
+                return {"message": "Payment not completed"}, 400
+        except Exception as e:
+            return {"message": str(e)}, 400

@@ -11,6 +11,7 @@ interface AuthContextType {
     user: User | null;
     login: (token: string) => void;
     logout: () => void;
+    isLoading: boolean;
     isFreeLancer: () => boolean;
     getToken: () => Promise<string | null>;
 }
@@ -19,24 +20,23 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     login: () => {},
     logout: () => {},
+    isLoading: true,
     isFreeLancer: () => false,
     getToken: async () => null,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
-
+    const [isLoading, setIsLoading] = useState(true);
+    
     const login = (token: string) => {
         localStorage.setItem('token', token);
-        const decoded = jwtDecode<User>(token);
+        const decoded = jwtDecode<{ sub: string; email: string; is_freelancer: boolean }>(token);
         setUser({
-            id: decoded.sub,
+            id: decoded.sub, 
             email: decoded.email,
             is_freelancer: decoded.is_freelancer
         });
-        console.log("ajsdgha")
-        console.log(user)
-
         return decoded;
     };
 
@@ -57,13 +57,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const token = localStorage.getItem('token');
         if (token) {
             try {
-                const decoded = jwtDecode<User>(token);
-                setUser(decoded);
+                const decoded = jwtDecode<{ sub: string; email: string; is_freelancer: boolean }>(token);
+                setUser({
+                    id: decoded.sub,
+                    email: decoded.email,
+                    is_freelancer: decoded.is_freelancer
+                });
             } catch (err) {
                 console.error('Invalid token:', err);
                 localStorage.removeItem('token');
             }
         }
+        setIsLoading(false); 
     }, []);
 
     return (

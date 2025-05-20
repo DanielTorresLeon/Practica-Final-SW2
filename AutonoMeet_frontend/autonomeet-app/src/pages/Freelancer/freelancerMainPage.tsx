@@ -76,11 +76,9 @@ const FreelancerHome = () => {
           return;
         }
 
-        // Fetch services
         const servicesData = await ServiceService.getFreelancerServices(Number(user.id));
         setServices(servicesData);
 
-        // Fetch appointments and enrich with service details
         const appointmentsData = await AppointmentService.getAppointmentsByFreelancer(Number(user.id));
         const appointmentsWithService = await Promise.all(
           appointmentsData.map(async (appointment) => {

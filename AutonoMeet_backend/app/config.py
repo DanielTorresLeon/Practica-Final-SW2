@@ -13,4 +13,12 @@ class Config:
     if not SECRET_KEY:
         raise ValueError("No SECRET_KEY set for Flask application")
     
+    STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+    if not STRIPE_PUBLISHABLE_KEY:
+        raise ValueError("No STRIPE_PUBLISHABLE_KEY set for Flask application")
+    
+    STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+    if not STRIPE_SECRET_KEY:
+        raise ValueError("No STRIPE_SECRET_KEY set for Flask application")
+    
     PROPAGATE_EXCEPTIONS = True
