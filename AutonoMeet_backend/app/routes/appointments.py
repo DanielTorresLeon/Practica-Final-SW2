@@ -175,8 +175,8 @@ class AppointmentCheckout(Resource):
                     },
                 ],
                 mode='payment',
-                success_url='http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}',
-                cancel_url=f'http://localhost:5173/services/{service_id}?canceled=true&token={token}' if token else f'http://localhost:5173/services/{service_id}?canceled=true',
+                success_url='https://practica-final-sw2-frontend.onrender.com/success?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=f'https://practica-final-sw2-frontend.onrender.com/services/{service_id}?canceled=true&token={token}' if token else f'https://practica-final-sw2-frontend.onrender.com/services/{service_id}?canceled=true',
                 metadata={
                     'client_id': current_user.id,
                     'service_id': service_id,

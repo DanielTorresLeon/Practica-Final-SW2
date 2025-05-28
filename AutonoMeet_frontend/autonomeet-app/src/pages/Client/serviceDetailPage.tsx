@@ -61,13 +61,11 @@ const ServiceDetailPage: React.FC = () => {
     const token = queryParams.get('token');
     const canceled = queryParams.get('canceled');
 
-    // Only process if token and canceled are present and no prior message is set
     if (token && canceled === 'true' && !bookingMessage) {
       try {
         login(token);
         setBookingMessage('Payment was canceled.');
-        localStorage.removeItem('pendingAppointment'); // Clean up pending appointment
-        // Replace the URL to remove query parameters
+        localStorage.removeItem('pendingAppointment'); 
         navigate(`/services/${serviceId}`, { replace: true });
       } catch (err) {
         console.error('Invalid token:', err);
