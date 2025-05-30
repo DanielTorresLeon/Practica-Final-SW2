@@ -73,5 +73,4 @@ Below are screenshots showcasing key features of the AutonoMeet platform:
   ![Schedule Selection](Diagrams/schedule_selection.png)
 - **Payment Data**: Secure payment input interface.  
   ![Payment Data](Diagrams/payment_data.png)
-- **API Documentation**: Swagger interface for API endpoints.  
-  ![Swagger](Diagrams/swagger.png)
+
