@@ -9,6 +9,7 @@ from app.config import Config
 from dotenv import load_dotenv
 import stripe
 import os
+import logging  # Add logging module
 
 load_dotenv()
 
@@ -17,12 +18,22 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__)
 
+    # Configure logging
+    logging.basicConfig(
+        level=logging.DEBUG,  # Set to DEBUG to capture all logs
+        format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    )
+    app.logger.setLevel(logging.DEBUG)  # Ensure Flask app uses DEBUG level
+    handler = logging.StreamHandler()  # Output logs to stdout (Render captures this)
+    handler.setLevel(logging.DEBUG)
+    app.logger.addHandler(handler)
+
     CORS(
         app,
-        origins="*",  
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  
-        allow_headers=["Content-Type", "Authorization"],  
-        supports_credentials=True  
+        origins=["https://practica-final-sw2-frontend.onrender.com"],  # Restrict to your frontend
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+        supports_credentials=True
     )
 
     API_PREFIX = '/api/v0'
@@ -36,7 +47,6 @@ def create_app():
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600 
     jwt = JWTManager(app)
     
-
     stripe.api_key = app.config['STRIPE_SECRET_KEY']
     db.init_app(app)
     
@@ -53,16 +63,24 @@ def create_app():
 
     @jwt.unauthorized_loader
     def unauthorized_callback(callback):
+        app.logger.error(f"Unauthorized access: {callback}")
         return jsonify({"message": "Missing Authorization Header"}), 401
 
     @jwt.invalid_token_loader
     def invalid_token_callback(callback):
-        print(f"Invalid token callback: {callback}")
+        app.logger.error(f"Invalid token: {callback}")
         return jsonify({"message": "Invalid token"}), 422
     
     @app.errorhandler(NoAuthorizationError)
     def handle_no_authorization_error(e):
+        app.logger.error(f"No authorization error: {str(e)}")
         return jsonify({"message": "Missing Authorization Header"}), 401
+
+    # Add a general error handler for uncaught exceptions
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({"message": "Internal server error", "error": str(e)}), 500
 
     from app.routes import auth_routes
     from app.routes import serv_routes, appointments
