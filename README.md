@@ -53,3 +53,25 @@ Additionally, we aim to provide freelancers with a tool to:
 ### **Payment System**
 - Integration of an online payment system for secure transactions.
 
+### **Screenshots of the Application**
+
+Below are screenshots showcasing key features of the AutonoMeet platform:
+
+- **Sign In Page**: User login interface.  
+  ![Sign In](sign_in.png)
+- **Sign Up Page**: User registration interface.  
+  ![Sign Up](sign_up.png)
+- **Service Explorer**: Browse and filter available services.  
+  ![Service Explorer](service_explorer.png)
+- **Create Service**: Freelancer interface for adding a new service.  
+  ![Create Service](create_service.png)
+- **Freelancer Dashboard**: Overview of freelancer's services and bookings.  
+  ![Freelancer Dashboard](freelancer_dashboard.png)
+- **Individual Service**: Detailed view of a specific service.  
+  ![Individual Service](individual_service.png)
+- **Schedule Selection**: Interface for booking appointments.  
+  ![Schedule Selection](schedule_selection.png)
+- **Payment Data**: Secure payment input interface.  
+  ![Payment Data](payment_data.png)
+- **API Documentation**: Swagger interface for API endpoints.  
+  ![Swagger](swagger.png)
