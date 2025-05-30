@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
 jobs:
   backend:
     name: Backend Tests
@@ -15,6 +16,11 @@ jobs:
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        GITHUB_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+        GITHUB_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
         PYTHONPATH: /github/workspace/AutonoMeet_backend
 
     steps:
