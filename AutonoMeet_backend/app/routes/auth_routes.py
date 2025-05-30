@@ -2,6 +2,7 @@ from flask_restx import Namespace, Resource, fields
 from flask import request
 from ..utils.jwt_utils import generate_access_token
 from app.services.auth_service import AuthService
+from flask import current_app as app
 
 api = Namespace('auth', description='Authentication Operations')
 
@@ -74,24 +75,24 @@ class Login(Resource):
 class GoogleAuth(Resource):
     @api.expect(google_auth_model)
     def post(self):
-        print("DEBUG: Starting Google authentication")
+        app.logger.debug("Starting Google authentication")
         data = request.get_json()
-        print(f"DEBUG: Received data: {data}")
+        app.logger.debug(f"Received data: {data}")
         token = data.get('token')
         is_freelancer = data.get('is_freelancer', False)
-        print(f"DEBUG: Extracted token: {token}, is_freelancer: {is_freelancer}")
+        app.logger.debug(f"Extracted token: {token}, is_freelancer: {is_freelancer}")
 
-        print("DEBUG: Calling AuthService.google_auth")
+        app.logger.debug("Calling AuthService.google_auth")
         user, error, status_code = AuthService.google_auth(token, is_freelancer)
-        print(f"DEBUG: AuthService response - user: {user}, error: {error}, status_code: {status_code}")
+        app.logger.debug(f"AuthService response - user: {user}, error: {error}, status_code: {status_code}")
 
         if error:
-            print(f"DEBUG: Authentication failed with error: {error}")
+            app.logger.error(f"Authentication failed with error: {error}")
             return {"message": error}, status_code
 
-        print("DEBUG: Generating access token")
+        app.logger.debug("Generating access token")
         access_token = generate_access_token(user)
-        print(f"DEBUG: Generated access token: {access_token}")
+        app.logger.debug(f"Generated access token: {access_token}")
 
         response = {
             "message": "Google authentication successful",
@@ -100,7 +101,7 @@ class GoogleAuth(Resource):
             "email": user.email,
             "access_token": access_token
         }
-        print(f"DEBUG: Returning response: {response}")
+        app.logger.debug(f"Returning response: {response}")
         return response, 200
 
 @api.route('/github')

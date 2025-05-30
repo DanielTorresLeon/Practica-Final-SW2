@@ -5,6 +5,7 @@ import requests
 from google.oauth2 import id_token
 from google.auth.transport.requests import Request 
 import os
+from flask import current_app as app
 
 class AuthService:
     @staticmethod
@@ -43,26 +44,33 @@ class AuthService:
                 os.getenv('GOOGLE_CLIENT_ID'),
                 clock_skew_in_seconds=600
             )
+            app.logger.debug(f"Google token verified: {idinfo}")
 
             if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+                app.logger.error("Wrong issuer in Google token")
                 return None, "Wrong issuer", 401
 
             email = idinfo['email']
             normalized_email = email.lower()
+            app.logger.debug(f"Processing email: {normalized_email}")
             user = User.query.filter_by(email=normalized_email).first()
 
             if not user:
+                app.logger.info(f"User not found, creating new user with email: {normalized_email}, is_freelancer: {is_freelancer}")
                 user = User(email=normalized_email, password_hash=None, is_freelancer=is_freelancer)
                 db.session.add(user)
                 db.session.commit()
+                app.logger.debug(f"New user created: {user}")
+            else:
+                app.logger.debug(f"Existing user found: {user}")
 
             return user, None, 200
 
         except ValueError as e:
-            print(f"Google auth error: {str(e)}")
+            app.logger.error(f"Invalid Google token: {str(e)}")
             return None, f"Invalid Google token: {str(e)}", 401
         except Exception as e:
-            print(f"Unexpected error in google_auth: {str(e)}")
+            app.logger.error(f"Unexpected error in google_auth: {str(e)}", exc_info=True)
             return None, "Internal server error during Google auth", 500
     
     @staticmethod

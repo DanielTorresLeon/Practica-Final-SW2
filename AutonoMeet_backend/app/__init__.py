@@ -9,7 +9,7 @@ from app.config import Config
 from dotenv import load_dotenv
 import stripe
 import os
-import logging  # Add logging module
+import logging  
 
 load_dotenv()
 
@@ -18,19 +18,18 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__)
 
-    # Configure logging
     logging.basicConfig(
-        level=logging.DEBUG,  # Set to DEBUG to capture all logs
+        level=logging.DEBUG,
         format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
     )
-    app.logger.setLevel(logging.DEBUG)  # Ensure Flask app uses DEBUG level
-    handler = logging.StreamHandler()  # Output logs to stdout (Render captures this)
+    app.logger.setLevel(logging.DEBUG)  
+    handler = logging.StreamHandler()  
     handler.setLevel(logging.DEBUG)
     app.logger.addHandler(handler)
 
     CORS(
         app,
-        origins=["https://practica-final-sw2-frontend.onrender.com"],  # Restrict to your frontend
+        origins=["https://practica-final-sw2-frontend.onrender.com"], 
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],
         supports_credentials=True
