@@ -9,8 +9,8 @@ RUN npm install
 # Copiar el resto del código
 COPY . .
 
-# Exponer el puerto del servidor de desarrollo (ajusta según tu script dev)
+# Exponer el puerto 5173 (usado por Vite)
 EXPOSE 5173
 
-# Iniciar el servidor de desarrollo
-CMD ["npm", "run", "dev"]
+# Iniciar el servidor de desarrollo con Vite, configurando el host a 0.0.0.0
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
