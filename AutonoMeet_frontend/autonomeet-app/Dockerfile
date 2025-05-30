@@ -9,11 +9,8 @@ RUN npm install
 # Copiar el resto del código
 COPY . .
 
-# Construir la aplicación (si es necesario, por ejemplo, para generar algunos assets)
-RUN npm run build
+# Exponer el puerto del servidor de desarrollo (ajusta según tu script dev)
+EXPOSE 5173
 
-# Exponer el puerto (por defecto, el servidor de desarrollo de React usa 3000)
-EXPOSE 3000
-
-# Comando para iniciar el servidor
-CMD ["npm", "start"]
+# Iniciar el servidor de desarrollo
+CMD ["npm", "run", "dev"]
