@@ -74,23 +74,34 @@ class Login(Resource):
 class GoogleAuth(Resource):
     @api.expect(google_auth_model)
     def post(self):
+        print("DEBUG: Starting Google authentication")
         data = request.get_json()
+        print(f"DEBUG: Received data: {data}")
         token = data.get('token')
         is_freelancer = data.get('is_freelancer', False)
+        print(f"DEBUG: Extracted token: {token}, is_freelancer: {is_freelancer}")
 
+        print("DEBUG: Calling AuthService.google_auth")
         user, error, status_code = AuthService.google_auth(token, is_freelancer)
+        print(f"DEBUG: AuthService response - user: {user}, error: {error}, status_code: {status_code}")
+
         if error:
+            print(f"DEBUG: Authentication failed with error: {error}")
             return {"message": error}, status_code
 
+        print("DEBUG: Generating access token")
         access_token = generate_access_token(user)
+        print(f"DEBUG: Generated access token: {access_token}")
 
-        return {
+        response = {
             "message": "Google authentication successful",
             "user_id": user.id,
             "is_freelancer": user.is_freelancer,
             "email": user.email,
             "access_token": access_token
-        }, 200
+        }
+        print(f"DEBUG: Returning response: {response}")
+        return response, 200
 
 @api.route('/github')
 class GitHubAuth(Resource):

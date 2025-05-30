@@ -73,7 +73,7 @@ const Registration = () => {
     const userType = formData.is_freelancer ? 'freelancer' : 'client';
     console.log("GITHUB LOGIN")
     console.log(userType)
-    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent('http://localhost:5173/signup')}&scope=user:email&state=${userType}`;
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent('https://practica-final-sw2-frontend.onrender.com/signup')}&scope=user:email&state=${userType}`;
     window.location.href = githubAuthUrl;
   };
 
