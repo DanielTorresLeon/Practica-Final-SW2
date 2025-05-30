@@ -109,14 +109,12 @@ const Home: React.FC = () => {
     }
   };
 
-  // Carga inicial
   useEffect(() => {
     console.log('Initial load effect triggered');
     loadCategories();
     loadAppointments();
   }, [user?.id]);
 
-  // Efecto para recarga cuando cambia la ubicación
   useEffect(() => {
     console.log('Location changed effect triggered', {
       pathname: location.pathname,
@@ -124,17 +122,14 @@ const Home: React.FC = () => {
       key: location.key
     });
 
-    // Recargar siempre que se entre a la página, no solo cuando hay refresh flag
     console.log('Forcing appointments reload on location change');
     loadAppointments(true);
     
-    // Si hay refresh flag, mostrar mensaje especial
     if (location.state?.refresh) {
       console.log('Additional refresh flag detected');
     }
-  }, [location.pathname]); // Cambiamos a location.pathname para detectar cualquier navegación
+  }, [location.pathname]); 
 
-  // Efecto para recarga cuando la página gana foco
   useEffect(() => {
     console.log('Setting up visibility change listener');
     
@@ -269,9 +264,7 @@ const Home: React.FC = () => {
           <div className="profile-info">
             <p><strong>Email:</strong> {user?.email || 'email@example.com'}</p>
           </div>
-          <button className="action-btn" onClick={() => navigate('/profile/edit')}>
-            Edit Profile
-          </button>
+          
         </section>
       </main>
 
